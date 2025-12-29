@@ -1,201 +1,132 @@
-# Настройка DNS и VPN на Ubuntu 22.04 (Cloud.ru)
+# Быстрый старт: VPN + DNS
 
 ## Цель
 
 Иметь рабочую конфигурацию, где:
-- ✅ SSH всегда доступен (даже с включенным VPN)
-- ✅ Локальный DNS работает (без VPN)
-- ✅ Весь трафик идет через VPN (кроме SSH)
-- ✅ Docker контейнеры работают через VPN
+- ✅ Весь трафик идет через VPN
+- ✅ SSH всегда доступен
 - ✅ Kilo Code и нейросети работают
 
 ---
 
-## Проблема
+## 1. Подключение VPN
 
-Kilo Code не работает, потому что:
-- Локальный DNS (systemd-resolved) резолвит через провайдера
-- AdGuard VPN не меняет системный DNS
-- Kilo Code использует системный DNS и не может подключиться к нейросетям
-
----
-
-## Решение: Переключение на VPN DNS
-
-### Шаг 1: Подключить VPN
 ```bash
+# Подключить VPN к Германии
 adguardvpn-cli connect -l FRANKFURT
-```
 
-### Шаг 2: Проверить что VPN подключен
-```bash
-adguardvpn-cli status
-# Должно показать: Connected to FRANKFURT in TUN mode, running on tun0
-
-ip addr show tun0
-# Должен показать IP в диапазоне 172.16.x.x
-```
-
-### Шаг 3: Изменить DNS на VPN DNS
-
-**Вариант 1: Через настройки AdGuard VPN (рекомендуется)**
-```bash
-# Включить опцию "Change system DNS" в AdGuard VPN
+# Включить автоматическую смену DNS
 adguardvpn-cli config set-change-system-dns on
+
+# Проверить статус
+adguardvpn-cli status
 ```
 
-**Вариант 2: Вручную через systemd-resolved**
+## 2. Проверка работы
+
 ```bash
-# Создать конфиг для VPN
-sudo tee /etc/systemd/resolved.conf.d/vpn.conf > /dev/null << 'EOF'
-[Resolve]
-DNS=127.0.0.1:46735
-FallbackDNS=8.8.8.8
-DNSSEC=no
-Cache=no
-EOF
+# Проверить IP (должен показать VPN IP)
+curl ifconfig.me
 
-# Перезапустить systemd-resolved
-sudo systemctl restart systemd-resolved
-
-# Проверить
-resolvectl status
-# Должно показать DNS через 127.0.0.1:46735 (AdGuard)
-```
-
-### Шаг 4: Проверить DNS через VPN
-```bash
-# Проверить что DNS работает через VPN
+# Проверить DNS
 dig google.com +short
-# Должен вернуть IP
 
-# Проверить что IP через VPN
-curl -s ifconfig.me
-# Должен показать IP VPN (например, 156.146.33.99)
+# Перезапустите VS Code
 ```
 
-### Шаг 5: Проверить Kilo Code
-- Перезапустите VS Code/Kilo Code
-- Попробуйте подключиться к нейросетям
-- Должно работать!
+## 3. Отключение VPN
+
+```bash
+# Отключить VPN
+adguardvpn-cli disconnect
+
+# Проверить DNS
+dig google.com +short
+```
 
 ---
 
-## Как вернуться к базовому DNS (без VPN)
+## Диагностика сети
 
-Если нужно отключить VPN и вернуть базовый DNS:
+### Полная диагностика (одной командой)
+```bash
+echo "=== ДИАГНОСТИКА СЕТИ ===" && echo "" && echo "1. VPN статус:" && adguardvpn-cli status && echo "" && echo "2. Настройки VPN:" && adguardvpn-cli config show | grep -E "DNS|system" && echo "" && echo "3. DNS (resolvectl):" && resolvectl status | grep -A5 "Link 1281 (tun0)" && echo "" && echo "4. IP адрес:" && curl -s ifconfig.me && echo "" && echo "5. Маршруты по умолчанию:" && ip route show | grep default && echo "" && echo "6. Policy routing:" && ip rule show | grep "176.123.161.187" && echo "" && echo "7. Маршруты для SSH (table 100):" && ip route show table 100 && echo "" && echo "8. Маршруты VPN (table 880):" && ip route show table 880 | head -3 && echo "..." && ip route show table 880 | tail -3 && echo "" && echo "9. Проверка DNS:" && dig google.com +short | head -1 && echo "" && echo "10. Проверка порта 53:" && ss -ltpn | grep 53
+```
 
+### Базовые проверки
+```bash
+# DNS
+resolvectl status
+cat /etc/resolv.conf
+
+# VPN
+adguardvpn-cli status
+adguardvpn-cli config show
+
+# Маршруты
+ip route show
+ip rule show
+ip route show table 100  # SSH
+ip route show table 880  # VPN
+```
+
+
+## Troubleshooting
+
+### Kilo Code не работает
 ```bash
 # 1. Отключить VPN
 adguardvpn-cli disconnect
 
-# 2. Восстановить systemd-resolved
-sudo systemctl enable systemd-resolved
-sudo systemctl start systemd-resolved
-sudo rm -f /etc/resolv.conf
-sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+# 2. Включить смену DNS
+adguardvpn-cli config set-change-system-dns on
 
-# 3. Удалить VPN конфиг
-sudo rm -f /etc/systemd/resolved.conf.d/vpn.conf
+# 3. Подключить снова
+adguardvpn-cli connect -l FRANKFURT
 
-# 4. Проверить
+# 4. Перезапустить VS Code
+```
+
+### Apt не работает
+```bash
+# Проверить DNS
 dig google.com +short
-sudo apt update
+
+# Перезапустить systemd-resolved
+sudo systemctl restart systemd-resolved
 ```
 
----
-
-## Полезные команды
-
-### Проверить текущий DNS
+### SSH отключается
 ```bash
-cat /etc/resolv.conf
-resolvectl status
-```
-
-### Проверить что слушает порт 53
-```bash
-ss -ltpn | grep 53
-```
-
-### Проверить маршрутизацию
-```bash
+# Проверить policy routing
 ip rule show
-ip route show table all
-```
-
-### Проверить VPN статус
-```bash
-adguardvpn-cli status
-adguardvpn-cli config show
+# Должно быть: from 176.123.161.187 lookup 100
 ```
 
 ---
 
-## Policy routing (SSH сохраняется при VPN)
+## Как это работает
 
-Уже настроено на вашем сервере:
-```bash
-ip rule show
-# 30754: from 176.123.161.187 lookup 100
-
-ip route show table 100
-# default via 176.123.160.1 dev enp3s0 table 100
+### Схема
+```
+Весь трафик → VPN (tun0) → Франкфурт
+SSH → Прямой доступ (table 100)
+DNS → Автоматически через VPN
 ```
 
-Это означает: весь трафик **от** IP 176.123.161.187 идет через провайдера, минуя VPN. SSH сессии сохраняются.
+### Ключевые моменты
+1. **`set-change-system-dns on`** — автоматически меняет DNS
+2. **Policy routing** — SSH защищен от VPN
+3. **Table 880** — весь трафик через VPN
+4. **Table 100** — SSH трафик напрямую
 
 ---
 
-## Docker контейнеры
-
-Docker контейнеры автоматически используют хост-резолвер, поэтому:
-- С базовым DNS → резолвят через провайдера
-- С VPN DNS → резолвят через AdGuard (VPN)
-
-Если нужно явно указать DNS для Docker:
-```bash
-# В /etc/docker/daemon.json
-{
-  "dns": ["127.0.0.1"]
-}
-```
+## См. также
+- [Архитектура сети](network_architecture.md) — теория и схемы
+- [Справочник команд](adguard_vpn_setup.md) — все команды и скрипты
+- [Базовые настройки DNS](dns_base.md) — восстановление базового DNS
 
 ---
 
-## Troubleshooting
-
-### Kilo Code не работает с VPN
-**Причина:** DNS резолвит через провайдера, а не через VPN  
-**Решение:** Включить "Change system DNS" в AdGuard VPN или настроить systemd-resolved на 127.0.0.1:46735
-
-### Apt не работает с VPN
-**Причина:** DNS не работает  
-**Решение:** Проверить что systemd-resolved работает и DNS настроен правильно
-
-### SSH отключается при VPN
-**Причина:** Нет policy routing  
-**Решение:** Добавить правила:
-```bash
-IP=$(ip addr show enp3s0 | grep "inet " | awk '{print $2}' | cut -d/ -f1)
-sudo ip rule add from $IP table 100
-sudo ip route add default via 176.123.160.1 dev enp3s0 table 100
-```
-
----
-
-## Итоговая последовательность
-
-**Для работы с VPN:**
-1. `adguardvpn-cli connect -l FRANKFURT`
-2. `adguardvpn-cli config set-change-system-dns on`
-3. Перезапустить VS Code/Kilo Code
-
-**Для работы без VPN:**
-1. `adguardvpn-cli disconnect`
-2. Восстановить базовый DNS (см. выше)
-
----
-
-**Дата создания:** 2025-12-29  
-**Статус:** ✅ Рабочая конфигурация
+**Дата:** 2025-12-29 | **Статус:** ✅ Рабочая конфигурация

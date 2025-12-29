@@ -68,7 +68,7 @@ ff02::1 ip6-allnodes
 ff02::2 ip6-allrouters
 ```
 
----
+
 
 ## Команды для восстановления базовых настроек
 
@@ -76,9 +76,7 @@ ff02::2 ip6-allrouters
 
 ### 1. Остановить все кастомные DNS-процессы
 ```bash
-# Убить Python форвардеры
-sudo pkill -f dns_forwarder || true
-sudo pkill -f python3 || true
+# Остановить все инструменты для forwarding портов.
 
 # Остановить dnsmasq если установлен
 sudo systemctl stop dnsmasq 2>/dev/null || true
@@ -119,7 +117,7 @@ ping -c 2 google.com
 sudo apt update
 ```
 
----
+
 
 ## Что делает systemd-resolved?
 
@@ -128,7 +126,7 @@ sudo apt update
 - **Кеширует** ответы для ускорения
 - **Интегрирован** с системой (NetworkManager, systemd-networkd)
 
----
+
 
 ## Когда использовать этот подход?
 
@@ -142,30 +140,6 @@ sudo apt update
 - Требуется selective forwarding
 - Нужен кастомный DNS-сервер
 
----
-
-## Альтернативы (если нужно больше контроля)
-
-### Вариант 1: dnsmasq
-```bash
-sudo apt install dnsmasq
-# Настроить /etc/dnsmasq.conf
-sudo systemctl enable dnsmasq
-```
-
-### Вариант 2: AdGuard Home
-```bash
-# Установка и настройка
-# Слушает порт 53, кеширует, фильтрует рекламу
-```
-
-### Вариант 3: Python форвардер (временный)
-```bash
-# Только для тестов, не для продакшна
-python3 /tmp/dns_forwarder.py
-```
-
----
 
 ## Полезные команды диагностики
 
@@ -192,7 +166,6 @@ resolvectl status
 resolvectl query google.com
 ```
 
----
 
 ## Важные файлы
 
@@ -201,7 +174,6 @@ resolvectl query google.com
 - `/etc/hosts` — локальные хосты
 - `/etc/systemd/system/systemd-resolved.service` — конфиг службы
 
----
 
 ## Восстановление после AdGuard VPN
 
@@ -211,9 +183,8 @@ resolvectl query google.com
 # 1. Отключить VPN
 adguardvpn-cli disconnect
 
-# 2. Убить все DNS-процессы
-sudo pkill -f dns_forwarder || true
-sudo pkill -f python3 || true
+# 2. Завершить все DNS-процессы
+# (если они есть)
 sudo systemctl stop dnsmasq 2>/dev/null || true
 
 # 3. Восстановить systemd-resolved
@@ -227,11 +198,10 @@ dig google.com +short
 sudo apt update
 ```
 
----
 
 ## Policy routing для SSH (сохранение доступа при VPN)
 
-### Исходные настройки (с вашего старого сервера)
+### Исходные настройки
 ```bash
 ip rule show
 ```
@@ -272,7 +242,7 @@ ip rule show
 ip route show table 100
 ```
 
-### Сохранение правил после перезагрузки:
+### Сохранение правил после перезагрузки сервера:
 
 Создайте файл `/etc/network/if-up.d/policy-routing`:
 
@@ -304,7 +274,6 @@ adguardvpn-cli connect
 # SSH сессия должна остаться активной!
 ```
 
----
 
 ## Чек-лист после восстановления
 
@@ -317,7 +286,6 @@ adguardvpn-cli connect
 - [ ] SSH доступ сохраняется
 - [ ] Policy routing настроен (ip rule show)
 
----
 
 ## Примечания
 
@@ -325,8 +293,6 @@ adguardvpn-cli connect
 - **Не меняйте** `/etc/resolv.conf` вручную — он управляется systemd
 - **Если нужно** статический DNS — используйте `/etc/systemd/resolved.conf`
 - **Policy routing** для SSH настраивается отдельно (если нужен VPN)
-
----
 
 **Дата создания:** 2025-12-29  
 **Автор:** Инструкция для восстановления базовых настроек DNS  
