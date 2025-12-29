@@ -1,4 +1,4 @@
-# Базовые настройки DNS для Ubuntu 22.04 на Cloud.ru
+# Базовые настройки DNS для Ubuntu 22.04
 
 ## Исходные настройки (чистый сервер)
 
@@ -9,7 +9,7 @@ ip addr show
 ```
 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN
     inet 127.0.0.1/8 scope host lo
-2: enp3s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP
+2: enp3s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 disc fq_codel state UP
     inet 176.123.161.187/21 metric 100 brd 176.123.167.255 scope global dynamic enp3s0
 ```
 
@@ -68,7 +68,7 @@ ff02::1 ip6-allnodes
 ff02::2 ip6-allrouters
 ```
 
-
+---
 
 ## Команды для восстановления базовых настроек
 
@@ -117,7 +117,7 @@ ping -c 2 google.com
 sudo apt update
 ```
 
-
+---
 
 ## Что делает systemd-resolved?
 
@@ -126,7 +126,7 @@ sudo apt update
 - **Кеширует** ответы для ускорения
 - **Интегрирован** с системой (NetworkManager, systemd-networkd)
 
-
+---
 
 ## Когда использовать этот подход?
 
@@ -140,6 +140,7 @@ sudo apt update
 - Требуется selective forwarding
 - Нужен кастомный DNS-сервер
 
+---
 
 ## Полезные команды диагностики
 
@@ -166,6 +167,7 @@ resolvectl status
 resolvectl query google.com
 ```
 
+---
 
 ## Важные файлы
 
@@ -174,6 +176,7 @@ resolvectl query google.com
 - `/etc/hosts` — локальные хосты
 - `/etc/systemd/system/systemd-resolved.service` — конфиг службы
 
+---
 
 ## Восстановление после AdGuard VPN
 
@@ -198,6 +201,7 @@ dig google.com +short
 sudo apt update
 ```
 
+---
 
 ## Policy routing для SSH (сохранение доступа при VPN)
 
@@ -274,6 +278,7 @@ adguardvpn-cli connect
 # SSH сессия должна остаться активной!
 ```
 
+---
 
 ## Чек-лист после восстановления
 
@@ -286,6 +291,7 @@ adguardvpn-cli connect
 - [ ] SSH доступ сохраняется
 - [ ] Policy routing настроен (ip rule show)
 
+---
 
 ## Примечания
 
@@ -293,6 +299,8 @@ adguardvpn-cli connect
 - **Не меняйте** `/etc/resolv.conf` вручную — он управляется systemd
 - **Если нужно** статический DNS — используйте `/etc/systemd/resolved.conf`
 - **Policy routing** для SSH настраивается отдельно (если нужен VPN)
+
+---
 
 **Дата создания:** 2025-12-29  
 **Автор:** Инструкция для восстановления базовых настроек DNS  
