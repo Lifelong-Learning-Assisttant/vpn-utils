@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  vpn:
+    container_name: vpn
+    build: .
+    cap_add:
+      - NET_ADMIN
+    cap_drop:
+      - ALL
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    restart: unless-stopped
+    networks:
+      - vpn-net
+    volumes:
+      - ./danted.conf:/etc/danted.conf:ro
+      - ./tinyproxy.conf:/etc/tinyproxy/tinyproxy.conf:ro
+      - ./dnsmasq.conf:/etc/dnsmasq.conf:ro
+
+networks:
+  vpn-net:
+    external: true
