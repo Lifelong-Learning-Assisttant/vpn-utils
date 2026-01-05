@@ -21,7 +21,7 @@ echo ""
 echo "[start-vpn.sh] Запуск dnsmasq..."
 if [ -f /etc/dnsmasq.conf ]; then
     pkill dnsmasq || true
-    dnsmasq --conf-file=/etc/dnsmasq.conf
+    dnsmasq --conf-file=/etc/dnsmasq.conf --user=root --group=root &
     echo "[start-vpn.sh] dnsmasq запущен"
 else
     echo "[start-vpn.sh] Конфиг dnsmasq не найден"
@@ -32,7 +32,7 @@ echo ""
 echo "[start-vpn.sh] Запуск danted (SOCKS5 proxy :1080)..."
 if [ -f /etc/danted.conf ]; then
     pkill danted || true
-    /usr/sbin/danted -f /etc/danted.conf
+    /usr/sbin/danted -f /etc/danted.conf &
     echo "[start-vpn.sh] danted запущен"
 else
     echo "[start-vpn.sh] Конфиг danted не найден"
@@ -43,7 +43,7 @@ echo ""
 echo "[start-vpn.sh] Запуск tinyproxy (HTTP proxy :1090)..."
 if [ -f /etc/tinyproxy/tinyproxy.conf ]; then
     pkill tinyproxy || true
-    tinyproxy -c /etc/tinyproxy/tinyproxy.conf
+    tinyproxy -c /etc/tinyproxy/tinyproxy.conf &
     echo "[start-vpn.sh] tinyproxy запущен"
 else
     echo "[start-vpn.sh] Конфиг tinyproxy не найден"

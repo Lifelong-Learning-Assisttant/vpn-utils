@@ -6,6 +6,8 @@ services:
     build: .
     cap_add:
       - NET_ADMIN
+      - SETGID
+      - SETUID
     cap_drop:
       - ALL
     devices:
@@ -14,9 +16,7 @@ services:
     networks:
       - vpn-net
     volumes:
-      - ./danted.conf:/etc/danted.conf:ro
-      - ./tinyproxy.conf:/etc/tinyproxy/tinyproxy.conf:ro
-      - ./dnsmasq.conf:/etc/dnsmasq.conf:ro
+      - .:/vpn-config
 
 networks:
   vpn-net:

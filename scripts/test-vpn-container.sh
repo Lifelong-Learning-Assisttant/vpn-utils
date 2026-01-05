@@ -61,13 +61,51 @@ else
 fi
 echo ""
 
-# Проверка IP через VPN
-echo "[6/6] Проверка IP через VPN..."
-if docker exec vpn curl -s --connect-timeout 5 https://api.ipify.org >/dev/null 2>&1; then
-    IP=$(docker exec vpn curl -s https://api.ipify.org)
-    echo "✓ IP через VPN: $IP"
+# Проверка IP без VPN
+echo "[6a/7] Проверка IP без VPN..."
+IP_WITHOUT_VPN=$(curl -s --connect-timeout 5 https://api.ipify.org 2>/dev/null)
+if [ -n "$IP_WITHOUT_VPN" ]; then
+    echo "✓ IP без VPN: $IP_WITHOUT_VPN"
 else
-    echo "✗ Не удалось получить IP через VPN"
+    echo "✗ Не удалось получить IP без VPN"
+fi
+echo ""
+
+# Проверка IP через HTTP proxy
+echo "[6b/7] Проверка IP через HTTP proxy..."
+if docker exec vpn curl -s --connect-timeout 5 --proxy http://127.0.0.1:1090 https://api.ipify.org >/dev/null 2>&1; then
+    IP_HTTP=$(docker exec vpn curl -s --proxy http://127.0.0.1:1090 https://api.ipify.org)
+    echo "✓ IP через HTTP proxy: $IP_HTTP"
+else
+    echo "✗ Не удалось получить IP через HTTP proxy"
+fi
+echo ""
+
+# Проверка IP через SOCKS5 proxy
+echo "[6c/7] Проверка IP через SOCKS5 proxy..."
+if docker exec vpn curl -s --connect-timeout 5 --socks5 127.0.0.1:1080 https://api.ipify.org >/dev/null 2>&1; then
+    IP_SOCKS5=$(docker exec vpn curl -s --socks5 127.0.0.1:1080 https://api.ipify.org)
+    echo "✓ IP через SOCKS5 proxy: $IP_SOCKS5"
+else
+    echo "✗ Не удалось получить IP через SOCKS5 proxy"
+fi
+echo ""
+
+# Сравнение IP адресов
+echo "[6d/7] Сравнение IP адресов..."
+if [ "$IP_WITHOUT_VPN" != "$IP_HTTP" ] || [ "$IP_WITHOUT_VPN" != "$IP_SOCKS5" ]; then
+    echo "✓ IP адрес изменился через VPN"
+else
+    echo "✗ IP адрес не изменился"
+fi
+echo ""
+
+# Тестирование доступа к Google Gemini через VPN
+echo "[7a/8] Тестирование доступа к Google Gemini через VPN..."
+if docker exec vpn bash -c "source /vpn-config/.env && curl -s --proxy http://127.0.0.1:1090 -H 'x-goog-api-key: \$GOOGLE_GEMINI_API_KEY' -H 'Content-Type: application/json' -d '{\"contents\":[{\"parts\":[{\"text\":\"Hello from VPN!\"}]}]}' https://generativelanguage.googleapis.com/v1beta/models/google/gemini-3-flash-preview:generateContent" >/dev/null 2>&1; then
+    echo "✓ Доступ к Google Gemini через VPN работает"
+else
+    echo "✗ Не удалось получить доступ к Google Gemini через VPN"
 fi
 echo ""
 
